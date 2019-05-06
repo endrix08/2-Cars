@@ -13,23 +13,29 @@ clock = pygame.time.Clock()
 Main_screen = pygame.image.load('Main screen (Mistral).bmp')
 Btn_start = pygame.image.load('Play.gif')
 Btn_start_green = pygame.image.load('Play_green.gif')
+InGame_Screen = pygame.image.load('Road.bmp')
+BlueCar = pygame.image.load('blueCar.bmp')
+BlueCircle = pygame.image.load('blueCircle.bmp')
+BlueSquare = pygame.image.load('blueSquare.bmp')
+RedCar = pygame.image.load('redCar.bmp')
+RedCircle= pygame.image.load('redCircle.bmp')
+RedSquare= pygame.image.load('redSquare.bmp')
 
 #Game = Cars(Display)
 
 def Home_Screen():
     global btnPressed
-    Entry = True
     Display.blit(Main_screen,(0,0))
     Display.blit(Btn_start,(100,250))
     
-    while Entry:
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                pygame.quit()
-                sys.exit()
-        Button(200,350,63,Btn_start,Btn_start_green)
-        pygame.display.update()
-        clock.tick(30)
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            pygame.quit()
+            sys.exit()
+    Button(200,350,63,Btn_start,Btn_start_green)
+    print("balf")
+    pygame.display.update()
+    clock.tick(30)
         
 mousex, mousey = 0,0
 clickx, clicky = 0,0
@@ -37,8 +43,8 @@ mClicked = False
 btnPressed = False
 
 def isMouseOverButton(centerX,centerY,radius,mouseX,mouseY):
-    mouseXdif = centerX - mouseX
-    mouseYdif = centerY - mouseY
+    mouseXdif = mouseX - centerX
+    mouseYdif = mouseY - centerY
     mouseXdif2 = mouseXdif * mouseXdif
     mouseYdif2 = mouseYdif * mouseYdif
     
@@ -53,7 +59,7 @@ def Button(centerx, centery, radius, figureInactive, figureActive):
     while not btnPressed:
         for event in pygame.event.get():
             if event.type == MOUSEMOTION:
-                print("balf")
+                #print("balf")
                 mousex,mousey = event.pos
             elif event.type == MOUSEBUTTONDOWN:
                 print("balf2")
@@ -69,16 +75,42 @@ def Button(centerx, centery, radius, figureInactive, figureActive):
             if isMouseOverButton(centerx,centery,radius,clickx,clicky) and mClicked == True:
                 mClicked = False
                 btnPressed = True
-                Display.fill(white)
+                #Display.blit(InGame_Screen,(0,0))
                 pygame.display.update()
         else:
             Display.blit(figureInactive,(100,250))
             pygame.display.update()
         clock.tick(10)
+        
+def Game_Screen():
+    Entry = True
+    redCar = Cars(Display,30,130) # a car is 40x75 px
+    blueCar = Cars(Display,230,330)
+    Display.blit(InGame_Screen,(0,0))
+    
+    while Entry:
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                  redCar.Change()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RIGHT:
+                  blueCar.Change()
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+        
+        Display.blit(InGame_Screen,(0,0))
+        Display.blit(RedCar,(redCar.GetPos(),480))
+        Display.blit(BlueCar,(blueCar.GetPos(),480))
+        pygame.display.update()
+        clock.tick(30)
+
 
 #def main():
 #    Obj1 = Cars(Display)
 
 Home_Screen()
+Game_Screen()
 pygame.quit()
 sys.exit()
