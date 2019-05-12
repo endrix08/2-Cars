@@ -5,11 +5,11 @@ pygame.init()
 
 width = 400
 height = 600
-white = (255,255,255)
 
 Display = pygame.display.set_mode((width, height))
 pygame.display.set_caption("Two Cars")
 clock = pygame.time.Clock()
+# Load images
 OutOfGame_screen = pygame.image.load('OutOfGameScreen.bmp')
 TWO_CARS_subtitle = pygame.image.load('Subtitle_2 CARS.gif')
 PAUSE_subtitle = pygame.image.load('Subtitle_PAUSE.gif')
@@ -24,29 +24,35 @@ RedCar = pygame.image.load('redCar.bmp')
 RedCircle= pygame.image.load('redCircle.bmp')
 RedSquare= pygame.image.load('redSquare.bmp')
 
-mousex, mousey = 0,0
-clickx, clicky = 0,0
-score = 0
-mClicked = False
-btnPressed = False
 Entry = True
-obstackles = []
+btnPressed = False
+highscore = 0
+score = 0
+obstacles = []
+speed = 3
+isFirstGame = True
 
 def Home_Screen(subtitle):
     global score
     global btnPressed
     global Entry
+    global highscore
     Entry = True
     
-    Display.blit(OutOfGame_screen,(0,0))
-    WriteToScreen('Latest highscore: '+str(score), (150,20))
+    Display.blit(OutOfGame_screen,(0,0)) # positioning is always from tob left corner
+    WriteToScreen('Latest score: '+str(score), (110,450))
+    
     if subtitle == TWO_CARS_subtitle:
         subHPos = 77
     elif subtitle == PAUSE_subtitle:
         subHPos = 88
-    else:
+    elif subtitle == GAME_OVER_subtitle:
         subHPos = 6
+        if score > highscore:
+            highscore = score
         score = 0
+        
+    WriteToScreen('Highscore: '+str(highscore), (217,20))
     Display.blit(subtitle,(subHPos,114))
     Display.blit(Btn_start,(100,250))
     
@@ -64,27 +70,33 @@ def WriteToScreen(text,position):
     surface = font.render(text, True, (255, 255, 255))
     Display.blit(surface, position)
 
-def isMouseOverButton(centerX,centerY,radius,mouseX,mouseY):
-    mouseXdif = mouseX - centerX
-    mouseYdif = mouseY - centerY
-    mouseXdif2 = mouseXdif * mouseXdif
-    mouseYdif2 = mouseYdif * mouseYdif
-    
-    return (mouseXdif2 + mouseYdif2) < (radius * radius)
-
 def Button(centerx, centery, radius, figureInactive, figureActive):
-    global mousex, mousey
-    global clickx, clicky
-    global mClicked
     global btnPressed
+    global isFirstGame
+    mousex, mousey = 0,0
+    clickx, clicky = 0,0
+    mClicked = False
+    isEnterPressed = False
     
     while not btnPressed:
+        # catch user actions
         for event in pygame.event.get():
             if event.type == MOUSEMOTION:
                 mousex,mousey = event.pos
             elif event.type == MOUSEBUTTONDOWN:
-                clickx,clicky = event.pos
-                mClicked = True
+                if pygame.mouse.get_pressed() == (1,0,0):
+                    clickx,clicky = event.pos
+                    mClicked = True
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN and isFirstGame == False:
+                    Display.blit(figureActive,(100,250))
+                    pygame.display.update()
+                    isEnterPressed = True
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_RETURN and isFirstGame == False:
+                    btnPressed = True
+                    Game_Screen()
+                    isEnterPressed = False
             if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
@@ -95,119 +107,136 @@ def Button(centerx, centery, radius, figureInactive, figureActive):
             if isMouseOverButton(centerx,centery,radius,clickx,clicky) and mClicked == True:
                 mClicked = False
                 btnPressed = True
+                isFirstGame = False
                 Game_Screen()
         else:
-            Display.blit(figureInactive,(100,250))
-            pygame.display.update()
-        clock.tick(10)
+            if isEnterPressed == False:
+                Display.blit(figureInactive,(100,250))
+                pygame.display.update()
+        clock.tick(30)
+        
+def isMouseOverButton(centerX,centerY,radius,mouseX,mouseY):
+    mouseXdif = mouseX - centerX
+    mouseYdif = mouseY - centerY
+    mouseXdif2 = mouseXdif * mouseXdif
+    mouseYdif2 = mouseYdif * mouseYdif
+    
+    return (mouseXdif2 + mouseYdif2) < (radius * radius)
 
 def GenerateObstackle(color):
     global Entry
-    global obstackles
+    global obstacles
+    global speed
 
-    speed = 4
-    time.sleep(random.randint(0,4))
+    time.sleep(random.randint(0,3))
     while Entry:           
-        print('inRedThread')
         if color == 'red':
-            lane = random.choice((30,130))
+            lane = random.choice((30,130)) # an obstackle is 40x40 px
             oType = random.choice((RedCircle,RedSquare))
         elif color == 'blue':
             lane = random.choice((230,330))
             oType = random.choice((BlueCircle,BlueSquare))
-        else:
-            print("Unexpected error:", sys.exc_info()[0]) # Exception handling needed!
-        obstackle = Obstackles(Display,lane,-40,oType,speed)
-        obstackles.append(obstackle)
+            
+        obstacle = Obstacles(Display,lane,-40,oType)
+        obstacles.append(obstacle)
         
-        if random.randint(5,9)-speed >= 0:
-            sleeptime = random.randint(5,9)-speed
-        else:
-            sleeptime = 2
-        time.sleep(sleeptime) # valahogy még mindig bemegy 0 alá a sleeptime!
-        speed = obstackle.GetSpeed()
-    #ez az adaptáció a sebességhez jónak tűnik mert a meglévők nem csúsznak szét
-    # de mintha gyorsítás után az újak nagyobb távokkal helyeződnének le
-    # és kellene rá valami védelem is hogy ne mehessen be 0 alá a sleep :P
+        sleeptime = random.randint(6,12)/speed
+        time.sleep(sleeptime)
 
 def Game_Screen():
-    print('inMainThread')
     global score
     global Entry
-    global obstackles
+    global obstacles
     global btnPressed
-    btnPressed = False # valszeg máshol szebb lenne beállítani
+    global speed
+    btnPressed = False
     redCar = Cars(Display,30,130) # a car is 40x75 px
     blueCar = Cars(Display,230,330)
-    
+
     redThread = threading.Thread(target=GenerateObstackle, args=('red',))
     blueThread = threading.Thread(target=GenerateObstackle, args=('blue',))
     redThread.start()
     blueThread.start()
     
     while Entry:
+        Display.blit(InGame_Screen,(0,0))
+        isGameOver = False
+        elementToRemove = -1
+        isLaneSwitched = False
+        # catch user actions
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
                     redCar.Change()
+                    isLaneSwitched = True
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RIGHT:
                     blueCar.Change()
-            #if event.type == pygame.MOUSEBUTTONDOWN:
-                #if pygame.mouse.get_pressed() == (1,0,0):
-                    #obstackles.append(GenerateBlueObstackle())
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if pygame.mouse.get_pressed() == (0,0,1):
-                    # with lambda?
-                    for element in obstackles:
-                        element.IncreaseSpeed()
+                    isLaneSwitched = True
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_p or event.key == pygame.K_ESCAPE: # threadek leaállítása!
+                if event.key == pygame.K_p or event.key == pygame.K_ESCAPE:
                     Entry = False
                     redThread.join()
                     blueThread.join()
                     Home_Screen(PAUSE_subtitle)
-
             if event.type == QUIT:
+                Entry = False
+                redThread.join()
+                blueThread.join()
                 pygame.quit()
                 sys.exit()
         
-        Display.blit(InGame_Screen,(0,0))
-        Display.blit(RedCar,(redCar.GetPos(),480))
-        Display.blit(BlueCar,(blueCar.GetPos(),480))
+        redCarPos = redCar.GetPos()
+        blueCarPos = blueCar.GetPos()
         
-        for element in obstackles:
-            objTopPos = element.GetPos()
+        for element in obstacles:
+            element.Move(speed)
+            objPos = element.GetPos()
             objType = element.GetType()
             
-            Display.blit(objType,objTopPos)
-            element.Move()
-            
-            if objTopPos[1] >= 480-40 and objTopPos[1] <= 555-40: #car
-                if objTopPos[0] == redCar.GetPos() or objTopPos[0] == blueCar.GetPos():
-                    if objType == RedCircle or objType == BlueCircle:
-                        score = score + 1
-                        obstackles.remove(element)
-                        for element in obstackles:
-                            element.IncreaseSpeed() #megoldani h minden elem sebessége közös legyen
-                    else:
-                        Entry = False
-                        redThread.join()
-                        blueThread.join()
-                        obstackles = []
-                        Home_Screen(GAME_OVER_subtitle)
-            if objTopPos[1] >= 600-40:
+            Display.blit(objType,objPos)
+            # handling the cases when a car hits an obstackle
+            if objPos[1]+40 >= 480 and objPos[1] <= 555: # vertical position of the cars: 480-555 px
+                if objPos[0] == redCarPos or objPos[0] == blueCarPos: # when on obstackle is in the same lane as a car
+                    if objType == RedCircle or objType == BlueCircle: # when hits a circle
+                        score += 1
+                        elementToRemove = element
+                        speed += 1/speed
+                    else: # when hits a square
+                        if isLaneSwitched: # hitting a square when car is changing lane
+                            if objType == RedSquare:
+                                if objPos[0] == 30:
+                                    redCarPos = objPos[0]+40 # position the car towards the obstackle
+                                if objPos[0] == 130:
+                                    redCarPos = objPos[0]-40
+                            if objType == BlueSquare:
+                                if objPos[0] == 230:
+                                    blueCarPos = objPos[0]+40
+                                if objPos[0] == 330:
+                                    blueCarPos = objPos[0]-40
+                        isGameOver = True
+            # handling the cases when an obstackle reaches the bottom of the screen
+            if objPos[1]+40 >= 600:
                 if objType == RedCircle or objType == BlueCircle:
-                    Entry = False
-                    redThread.join()
-                    blueThread.join()
-                    obstackles = []
-                    Home_Screen(GAME_OVER_subtitle)
-            if objTopPos[1] >= 600: #bottom of screen
-                obstackles.remove(element)
-                
-        WriteToScreen('Score: '+str(score), (280,20))
+                    isGameOver = True
+            if objPos[1] >= 600: #bottom of screen: 600 px
+                elementToRemove = element
+        
+        if elementToRemove != -1:
+            obstacles.remove(elementToRemove)
+        
+        Display.blit(RedCar,(redCarPos,480))
+        Display.blit(BlueCar,(blueCarPos,480))
+        WriteToScreen('Score: '+str(score), (265,20))
         pygame.display.update()
+        
+        if isGameOver == True:
+            Entry = False
+            redThread.join()
+            blueThread.join()
+            obstacles.clear()
+            speed = 3
+            Home_Screen(GAME_OVER_subtitle)
         clock.tick(30)
 
 if __name__ == "__main__":

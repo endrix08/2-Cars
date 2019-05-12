@@ -1,6 +1,3 @@
-import pygame
-from pygame.locals import *
-
 class Cars:
     
     def __init__(self,Display,LeftPos,RightPos):
@@ -18,27 +15,19 @@ class Cars:
     def GetPos(self):
         return self.CurrentPos
 
-class Obstackles:
+class Obstacles:
     
-    def __init__(self,Display,HorisontalPos,VerticalPos,Type,Speed):
+    def __init__(self,Display,HorisontalPos,VerticalPos,Type):
         self.HorisontalPos = HorisontalPos
         self.VerticalPos = VerticalPos
         self.Type = Type
-        self.Speed = Speed
         
     def GetPos(self):
-        #print(self.Speed)
         return (self.HorisontalPos,self.VerticalPos)
     
     def GetType(self):
         return self.Type
     
-    def Move(self):
-        self.VerticalPos = self.VerticalPos + self.Speed
-        
-    def GetSpeed(self):
-        return self.Speed
-        
-    def IncreaseSpeed(self):
-        self.Speed = self.Speed + 0.5
+    def Move(self,Speed):
+        self.VerticalPos = self.VerticalPos + Speed
         
